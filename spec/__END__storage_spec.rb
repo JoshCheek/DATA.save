@@ -127,7 +127,7 @@ RSpec.describe '__END__storage' do
   it 'loads data from the data segment' do
     result = run_file 'file.rb', <<-FILE
       require '__END__storage'
-      p __END__storage(DATA).load
+      p __END__storage.load
       __END__
       the data
     FILE
@@ -138,7 +138,7 @@ RSpec.describe '__END__storage' do
   it 'saves data to the data segment' do
     result = run_file 'file.rb', <<-FILE
       require '__END__storage'
-      __END__storage(DATA).save("new data")
+      __END__storage.save("new data")
       __END__
       old data
     FILE
@@ -150,7 +150,7 @@ RSpec.describe '__END__storage' do
     result = run_file 'count_runs.rb', <<-FILE, num_times: 3
       require '__END__storage'
 
-      storage   = __END__storage DATA
+      storage   = __END__storage
       run_count = storage.load.to_i + 1
       storage.save run_count
 
@@ -170,7 +170,7 @@ RSpec.describe '__END__storage' do
     expect(result.body).to eq <<-FILE.gsub(/^ */, '')
       require '__END__storage'
 
-      storage   = __END__storage DATA
+      storage   = __END__storage
       run_count = storage.load.to_i + 1
       storage.save run_count
 
