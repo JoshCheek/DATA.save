@@ -110,7 +110,7 @@ module SpecHelpers
     with_file 'body_after.rb', body do |file|
       File.open file do |opened_file|
         opened_file.seek pos
-        yield __END__storage opened_file
+        yield __END__storage(opened_file), file
       end
       File.read file.path
     end
@@ -181,11 +181,13 @@ RSpec.describe '__END__storage' do
     FILE
   end
 
+
   it 'is a private method added to Object' do
     expect(method :__END__storage).to be
     expect { self.__END__storage }
       .to raise_error NoMethodError, /private/
   end
+
 
   it 'calls #to_s when writing' do
     o = Object.new
@@ -194,23 +196,71 @@ RSpec.describe '__END__storage' do
     expect(segment_for o).to eq "to_s'd\n"
   end
 
+
   it 'appends a newline if the data doesn\'t have one (b/c this is a file)' do
     expect(segment_for "a\n").to eq "a\n"
     expect(segment_for "a"  ).to eq "a\n"
   end
 
+
   it 'works when the written segment is shorter than the existing data segment' do
-    body = body_after body: 'abcdefg', pos: 1 do |storage|
-      storage.save "X\n"
-    end
+    body = body_after(body: 'abcdefg', pos: 1) { |storage| storage.save "X\n" }
     expect(body).to eq "aX\n"
   end
 
-  it 'works when the written segment is longer than the existing data segment'
 
-  # File.open(name, "r+:UTF-8")
-  it 'works when there are UTF8 characters in the body'
-  it 'works when there are UTF8 characters in the DATA segment'
-  it 'can be reinvoked multiple times'
-  it 'reloads the data every time'
+  it 'works when the written segment is longer than the existing data segment' do
+    body = body_after(body: 'ab', pos: 1) { |storage| storage.save "X\n" }
+    expect(body).to eq "aX\n"
+  end
+
+
+  it 'works when there are UTF8 characters in the body' do
+    body = body_after body: 'Ω1', pos: 'Ω'.bytesize do |storage|
+      storage.save "X\n"
+    end
+    expect(body).to eq "ΩX\n"
+  end
+
+
+  it 'works when there are UTF8 characters in the old DATA segment' do
+    body = body_after body: '1Ω', pos: 1 do |storage|
+      storage.save "X\n"
+    end
+    expect(body).to eq "1X\n"
+  end
+
+
+  it 'works when there are UTF8 characters in the new DATA segment' do
+    body = body_after body: '12', pos: 1 do |storage|
+      storage.save "Ω\n"
+    end
+    expect(body).to eq "1Ω\n"
+  end
+
+
+  it 'can be reinvoked multiple times' do
+    body = body_after body: "-0\n", pos: 1 do |storage, file|
+      expect(storage.load).to eq "0\n"
+
+      storage.save 1
+      expect(File.read file).to eq "-1\n"
+      expect(storage.load).to eq "1\n"
+
+      storage.save 2
+      expect(File.read file).to eq "-2\n"
+      expect(storage.load).to eq "2\n"
+    end
+    expect(body).to eq "-2\n"
+  end
+
+
+  it 'reloads the data every time' do
+    body = body_after body: "-0\n", pos: 1 do |storage, file|
+      expect(storage.load).to eq "0\n"
+      File.write file, 'zomg'
+      expect(storage.load).to eq 'omg'
+    end
+    expect(body).to eq "zomg"
+  end
 end
