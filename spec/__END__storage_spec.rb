@@ -78,10 +78,11 @@ module SpecHelpers
   end
 
   require 'tempfile'
-  def with_file(name, body)
+  def with_file(name, body, closed: false)
     Tempfile.open name do |file|
       file.write body
-      file.close
+      file.rewind
+      file.close if closed
       yield file
     end
   end
@@ -90,7 +91,7 @@ module SpecHelpers
     indentation = body[/\A */]
     body        = body.gsub /^#{indentation}/, ''
     result      = RunResults.new
-    with_file name, body do |file|
+    with_file name, body, closed: true do |file|
       num_times.times do
         run = capture3 'ruby', '-w', '-I', lib_dir, file.path
         result.add_run run
@@ -106,10 +107,8 @@ module SpecHelpers
 
   def body_after(body:, pos:0)
     with_file 'body_after.rb', body do |file|
-      File.open file do |opened_file|
-        opened_file.seek pos
-        yield __END__storage(opened_file), file
-      end
+      file.seek pos
+      yield __END__storage(file), file
       File.read file.path
     end
   end
@@ -190,15 +189,13 @@ RSpec.describe '__END__storage' do
 
   it 'always evaluates to the default storage, when no args are given' do
     with_file 'f.rb', 'abc' do |file|
-      File.open file do |opened|
-        stub_const 'DATA', opened
-        expect(__END__storage.load).to eq 'abc'
-      end
+      stub_const 'DATA', file
+      expect(__END__storage.load).to eq 'abc'
     end
   end
 
   it 'creates a new instance every time, when a data segment is given' do
-    with_file 'f.rb', 'zomg' do |file|
+    with_file 'f.rb', 'zomg', closed: true do |file|
       segment1 = File.open file
       segment2 = File.open file
       segment2.getc
@@ -215,21 +212,17 @@ RSpec.describe '__END__storage' do
   describe 'the singleton default storage' do
     it 'is initialized with the DATA constant' do
       with_file 'f.rb', '-----' do |file|
-        File.open file do |opened|
-          opened.seek 1
-          stub_const 'DATA', opened
-          __END__storage.save 'a'
-          expect(File.read file).to eq "-a\n"
-        end
+        file.seek 1
+        stub_const 'DATA', file
+        __END__storage.save 'a'
+        expect(File.read file).to eq "-a\n"
       end
     end
 
     it 'is memoized' do
       with_file 'f.rb', '' do |file|
-        File.open file do |opened|
-          stub_const 'DATA', opened
-          expect(__END__storage).to equal __END__storage
-        end
+        stub_const 'DATA', file
+        expect(__END__storage).to equal __END__storage
       end
     end
   end
