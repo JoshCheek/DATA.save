@@ -1,3 +1,7 @@
+def __END__storage(data_segment)
+  END_storage.new data_segment
+end
+
 class END_storage
   def initialize(data_segment)
     self.data_segment = data_segment.dup
@@ -25,8 +29,4 @@ class END_storage
       yield file
     end
   end
-end
-
-def __END__storage(data_segment)
-  END_storage.new data_segment
 end
