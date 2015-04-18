@@ -30,6 +30,10 @@ class END_storage
     end
   end
 
+  def update
+    save yield load
+  end
+
   protected
 
   attr_accessor :path, :offset

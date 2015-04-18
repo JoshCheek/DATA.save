@@ -302,4 +302,14 @@ RSpec.describe '__END__storage' do
     end
     expect(body).to eq "zomg"
   end
+
+  it 'allows for upddating, which gives the current value to a block, and saves whatever comes back' do
+    body = body_after body: "-0\n", pos: 1 do |storage|
+      storage.update do |current|
+        expect(current).to eq "0\n"
+        100
+      end
+    end
+    expect(body).to eq "-100\n"
+  end
 end
