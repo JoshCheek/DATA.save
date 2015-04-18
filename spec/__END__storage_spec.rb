@@ -99,6 +99,22 @@ module SpecHelpers
     end
     result
   end
+
+  def segment_for(obj)
+    body_after body: '', pos: 0 do |storage|
+      storage.save obj
+    end
+  end
+
+  def body_after(body:, pos:)
+    with_file 'body_after.rb', body do |file|
+      File.open file do |opened_file|
+        opened_file.seek pos
+        yield __END__storage opened_file
+      end
+      File.read file.path
+    end
+  end
 end
 
 RSpec.configure do |config|
@@ -171,12 +187,30 @@ RSpec.describe '__END__storage' do
       .to raise_error NoMethodError, /private/
   end
 
-  it 'calls #to_s when writing'
-  it 'appends a newline if the data doesn\'t have one (b/c this is a file)'
-  it 'works when the written segment is shorter than the existing data segment'
+  it 'calls #to_s when writing' do
+    o = Object.new
+    def o.inspect() "inspected\n" end
+    def o.to_s()    "to_s'd\n"    end
+    expect(segment_for o).to eq "to_s'd\n"
+  end
+
+  it 'appends a newline if the data doesn\'t have one (b/c this is a file)' do
+    expect(segment_for "a\n").to eq "a\n"
+    expect(segment_for "a"  ).to eq "a\n"
+  end
+
+  it 'works when the written segment is shorter than the existing data segment' do
+    body = body_after body: 'abcdefg', pos: 1 do |storage|
+      storage.save "X\n"
+    end
+    expect(body).to eq "aX\n"
+  end
+
   it 'works when the written segment is longer than the existing data segment'
 
   # File.open(name, "r+:UTF-8")
   it 'works when there are UTF8 characters in the body'
   it 'works when there are UTF8 characters in the DATA segment'
+  it 'can be reinvoked multiple times'
+  it 'reloads the data every time'
 end
