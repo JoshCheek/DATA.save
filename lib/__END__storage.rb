@@ -1,16 +1,22 @@
 def __END__storage(data_segment=:default)
-  return END_storage.default if data_segment == :default
-  END_storage.new data_segment
+  if data_segment == :default
+    END_storage.default ||= __END__storage DATA
+  else
+    END_storage.from_segment(data_segment)
+  end
 end
 
 class END_storage
-  def self.default
-    @default ||= new DATA
+  class << self
+    attr_accessor :default
+    def from_segment(data_segment)
+      new data_segment.path, data_segment.pos
+    end
   end
 
-  def initialize(data_segment)
-    self.data_segment = data_segment.dup
-    self.position     = data_segment.pos
+  def initialize(path, offset)
+    self.path   = path
+    self.offset = offset
   end
 
   def load
@@ -26,11 +32,11 @@ class END_storage
 
   protected
 
-  attr_accessor :data_segment, :position
+  attr_accessor :path, :offset
 
   def open_segment
-    File.open data_segment, 'r+' do |file|
-      file.seek position
+    File.open path, 'r+' do |file|
+      file.seek offset
       yield file
     end
   end

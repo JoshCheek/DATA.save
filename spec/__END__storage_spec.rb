@@ -101,12 +101,10 @@ module SpecHelpers
   end
 
   def segment_for(obj)
-    body_after body: '', pos: 0 do |storage|
-      storage.save obj
-    end
+    body_after(body: '') { |storage| storage.save obj }
   end
 
-  def body_after(body:, pos:)
+  def body_after(body:, pos:0)
     with_file 'body_after.rb', body do |file|
       File.open file do |opened_file|
         opened_file.seek pos
@@ -124,6 +122,8 @@ RSpec.configure do |config|
 end
 
 RSpec.describe '__END__storage' do
+  before { END_storage.default = nil }
+
   it 'loads data from the data segment' do
     result = run_file 'file.rb', <<-FILE
       require '__END__storage'
@@ -150,9 +150,9 @@ RSpec.describe '__END__storage' do
     result = run_file 'count_runs.rb', <<-FILE, num_times: 3
       require '__END__storage'
 
-      storage   = __END__storage
-      run_count = storage.load.to_i + 1
-      storage.save run_count
+      run_count = __END__storage.load.to_i
+      run_count += 1
+      __END__storage.save run_count
 
       puts "Run count: \#{run_count}"
 
@@ -170,9 +170,9 @@ RSpec.describe '__END__storage' do
     expect(result.body).to eq <<-FILE.gsub(/^ */, '')
       require '__END__storage'
 
-      storage   = __END__storage
-      run_count = storage.load.to_i + 1
-      storage.save run_count
+      run_count = __END__storage.load.to_i
+      run_count += 1
+      __END__storage.save run_count
 
       puts "Run count: \#{run_count}"
 
@@ -186,6 +186,52 @@ RSpec.describe '__END__storage' do
     expect(method :__END__storage).to be
     expect { self.__END__storage }
       .to raise_error NoMethodError, /private/
+  end
+
+  it 'always evaluates to the default storage, when no args are given' do
+    with_file 'f.rb', 'abc' do |file|
+      File.open file do |opened|
+        stub_const 'DATA', opened
+        expect(__END__storage.load).to eq 'abc'
+      end
+    end
+  end
+
+  it 'creates a new instance every time, when a data segment is given' do
+    with_file 'f.rb', 'zomg' do |file|
+      segment1 = File.open file
+      segment2 = File.open file
+      segment2.getc
+
+      storage1 = __END__storage segment1
+      storage2 = __END__storage segment2
+
+      expect(storage1.load).to eq 'zomg'
+      expect(storage2.load).to eq 'omg'
+    end
+  end
+
+
+  describe 'the singleton default storage' do
+    it 'is initialized with the DATA constant' do
+      with_file 'f.rb', '-----' do |file|
+        File.open file do |opened|
+          opened.seek 1
+          stub_const 'DATA', opened
+          __END__storage.save 'a'
+          expect(File.read file).to eq "-a\n"
+        end
+      end
+    end
+
+    it 'is memoized' do
+      with_file 'f.rb', '' do |file|
+        File.open file do |opened|
+          stub_const 'DATA', opened
+          expect(__END__storage).to equal __END__storage
+        end
+      end
+    end
   end
 
 

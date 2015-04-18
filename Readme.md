@@ -20,9 +20,9 @@ A program that records how many times it's been run:
 ```ruby
 require '__END__storage'
 
-storage   = __END__storage DATA
-run_count = storage.load.to_i + 1
-storage.save run_count
+run_count = __END__storage.load.to_i
+run_count += 1
+__END__storage.save run_count
 
 puts "Run count: #{run_count}"
 
@@ -48,14 +48,32 @@ Run count: 3
 $ cat count_runs.rb
 require '__END__storage'
 
-storage   = __END__storage DATA
-run_count = storage.load.to_i + 1
-storage.save run_count
+run_count = __END__storage.load.to_i
+run_count += 1
+__END__storage.save run_count
 
 puts "Run count: #{run_count}"
 
 __END__
 3
+```
+
+Your data segment not in `DATA`?
+No biggie, you can the data segment in:
+
+```ruby
+require_relative 'lib/__END__storage'
+require 'tempfile'
+
+Tempfile.open 'tmp' do |file|
+  file.write "body-olddata"
+  file.seek 5
+  storage = __END__storage file
+  storage.save "newdata"
+  puts "FILE: #{File.read file}"
+end
+
+# >> FILE: body-newdata
 ```
 
 
