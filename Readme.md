@@ -46,7 +46,7 @@ $ ruby count_runs.rb
 $ cat count_runs.rb
 require '__END__storage'
 
-storage   = __END__storage.new DATA
+storage   = __END__storage DATA
 run_count = storage.load.to_i + 1
 storage.save run_count
 
