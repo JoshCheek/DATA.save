@@ -92,7 +92,7 @@ module SpecHelpers
     result      = RunResults.new
     with_file name, body do |file|
       num_times.times do
-        run = capture3 'ruby', '-I', lib_dir, file.path
+        run = capture3 'ruby', '-w', '-I', lib_dir, file.path
         result.add_run run
       end
       result.body = File.read file.path
@@ -171,8 +171,7 @@ RSpec.describe '__END__storage' do
       .to raise_error NoMethodError, /private/
   end
 
-  it 'runs without warnings'
-
+  it 'calls #to_s when writing'
   it 'appends a newline if the data doesn\'t have one (b/c this is a file)'
   it 'works when the written segment is shorter than the existing data segment'
   it 'works when the written segment is longer than the existing data segment'

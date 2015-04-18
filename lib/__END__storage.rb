@@ -19,7 +19,7 @@ class END_storage
     end
   end
 
-  private
+  protected
 
   attr_accessor :data_segment, :position
 
