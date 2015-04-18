@@ -14,7 +14,7 @@ class END_storage
 
   def save(data)
     open_segment do |ds|
-      ds.print data
+      ds.puts data
       ds.truncate ds.pos
     end
   end

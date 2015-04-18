@@ -127,36 +127,38 @@ RSpec.describe '__END__storage' do
       old data
     FILE
     result.assert_no_err!
-    expect(result.data_segment).to eq 'new data'
+    expect(result.data_segment).to eq "new data\n"
   end
 
   it 'works with the example from the readme' do
     result = run_file 'count_runs.rb', <<-FILE, num_times: 3
       require '__END__storage'
 
-      storage   = END__storage.new DATA
+      storage   = __END__storage DATA
       run_count = storage.load.to_i + 1
       storage.save run_count
 
-      puts "Run count: #{run_count}"
+      puts "Run count: \#{run_count}"
 
       __END__
       0
     FILE
 
     result.assert_no_err!
-    expect(result.stdouts).to eq "Run count: 1\n"\
-                                 "Run count: 2\n"\
-                                 "Run count: 3\n"
+    expect(result.stdouts).to eq [
+      "Run count: 1\n",
+      "Run count: 2\n",
+      "Run count: 3\n",
+    ]
 
     expect(result.body).to eq <<-FILE.gsub(/^ */, '')
       require '__END__storage'
 
-      storage   = END__storage.new DATA
+      storage   = __END__storage DATA
       run_count = storage.load.to_i + 1
       storage.save run_count
 
-      puts "Run count: #{run_count}"
+      puts "Run count: \#{run_count}"
 
       __END__
       3
@@ -171,6 +173,7 @@ RSpec.describe '__END__storage' do
 
   it 'runs without warnings'
 
+  it 'appends a newline if the data doesn\'t have one (b/c this is a file)'
   it 'works when the written segment is shorter than the existing data segment'
   it 'works when the written segment is longer than the existing data segment'
 
