@@ -1,23 +1,30 @@
 class END_storage
-  # File.open DATA, 'r+' do |file|
-  #   file.seek DATA.pos
-  #   file.puts build.as_json.to_json
-  # end
-
   def initialize(data_segment)
     self.data_segment = data_segment.dup
     self.position     = data_segment.pos
   end
 
   def load
-    ds = data_segment.dup
-    ds.seek position
-    ds.read
+    open_segment { |ds| ds.read }
+  end
+
+  def save(data)
+    open_segment do |ds|
+      ds.print data
+      ds.truncate ds.pos
+    end
   end
 
   private
 
   attr_accessor :data_segment, :position
+
+  def open_segment
+    File.open data_segment, 'r+' do |file|
+      file.seek position
+      yield file
+    end
+  end
 end
 
 def __END__storage(data_segment)

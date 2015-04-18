@@ -31,6 +31,10 @@ module SpecHelpers
       results.map(&:status)
     end
 
+    def data_segment
+      body.split("\n__END__\n").last
+    end
+
     def assert_no_err!
       stderrs.each do |err|
         next if err.empty?
@@ -123,7 +127,7 @@ RSpec.describe '__END__storage' do
       old data
     FILE
     result.assert_no_err!
-    expect(result.data).to eq 'new data'
+    expect(result.data_segment).to eq 'new data'
   end
 
   it 'works with the example from the readme' do
@@ -166,4 +170,11 @@ RSpec.describe '__END__storage' do
   end
 
   it 'runs without warnings'
+
+  it 'works when the written segment is shorter than the existing data segment'
+  it 'works when the written segment is longer than the existing data segment'
+
+  # File.open(name, "r+:UTF-8")
+  it 'works when there are UTF8 characters in the body'
+  it 'works when there are UTF8 characters in the DATA segment'
 end
