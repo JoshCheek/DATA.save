@@ -1,4 +1,6 @@
 class DataSave
+  VERSION = '0.0.1'
+
   def self.for(data_segment)
     new data_segment.path, data_segment.pos
   end
