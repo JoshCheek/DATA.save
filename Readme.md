@@ -1,5 +1,5 @@
-`__END__` storage
-=================
+`DATA.save`
+===========
 
 Stored shit in your script's data segment.
 
@@ -8,7 +8,7 @@ Install
 -------
 
 ```sh
-$ gem install __END__storage
+$ gem install DATA.save
 ```
 
 
@@ -18,11 +18,11 @@ Example
 A program that records how many times it's been run:
 
 ```ruby
-require '__END__storage'
+require 'DATA.save'
 
-run_count = __END__storage.load.to_i
+run_count = DATA.load.to_i
 run_count += 1
-__END__storage.save run_count
+DATA.save run_count
 
 puts "Run count: #{run_count}"
 
@@ -46,34 +46,16 @@ Run count: 3
 
 # now check out the file
 $ cat count_runs.rb
-require '__END__storage'
+require 'DATA.save'
 
-run_count = __END__storage.load.to_i
+run_count = DATA.load.to_i
 run_count += 1
-__END__storage.save run_count
+DATA.save run_count
 
 puts "Run count: #{run_count}"
 
 __END__
 3
-```
-
-Your data segment not in `DATA`?
-No biggie, you can the data segment in:
-
-```ruby
-require_relative 'lib/__END__storage'
-require 'tempfile'
-
-Tempfile.open 'tmp' do |file|
-  file.write "body-olddata"
-  file.seek 5
-  storage = __END__storage file
-  storage.save "newdata"
-  puts "FILE: #{File.read file}"
-end
-
-# >> FILE: body-newdata
 ```
 
 
