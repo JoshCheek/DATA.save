@@ -108,7 +108,7 @@ module SpecHelpers
   def body_after(body:, pos:0)
     with_file 'body_after.rb', body do |file|
       file.seek pos
-      yield __END__storage(file), file
+      yield DataSave.for(file), file
       File.read file.path
     end
   end
@@ -120,13 +120,11 @@ RSpec.configure do |config|
   config.fail_fast = true
 end
 
-RSpec.describe '__END__storage' do
-  before { END_storage.default = nil }
-
+RSpec.describe 'DATA.save' do
   it 'loads data from the data segment' do
     result = run_file 'file.rb', <<-FILE
       require '__END__storage'
-      p __END__storage.load
+      p DATA.load
       __END__
       the data
     FILE
@@ -137,7 +135,7 @@ RSpec.describe '__END__storage' do
   it 'saves data to the data segment' do
     result = run_file 'file.rb', <<-FILE
       require '__END__storage'
-      __END__storage.save("new data")
+      DATA.save("new data")
       __END__
       old data
     FILE
@@ -149,9 +147,9 @@ RSpec.describe '__END__storage' do
     result = run_file 'count_runs.rb', <<-FILE, num_times: 3
       require '__END__storage'
 
-      run_count = __END__storage.load.to_i
+      run_count = DATA.load.to_i
       run_count += 1
-      __END__storage.save run_count
+      DATA.save run_count
 
       puts "Run count: \#{run_count}"
 
@@ -169,9 +167,9 @@ RSpec.describe '__END__storage' do
     expect(result.body).to eq <<-FILE.gsub(/^ */, '')
       require '__END__storage'
 
-      run_count = __END__storage.load.to_i
+      run_count = DATA.load.to_i
       run_count += 1
-      __END__storage.save run_count
+      DATA.save run_count
 
       puts "Run count: \#{run_count}"
 
@@ -181,48 +179,33 @@ RSpec.describe '__END__storage' do
   end
 
 
-  it 'is a private method added to Object' do
-    expect(method :__END__storage).to be
-    expect { self.__END__storage }
-      .to raise_error NoMethodError, /private/
-  end
+  describe '.for' do
+    it 'creates a new instance every time, when a data segment is given' do
+      with_file 'f.rb', 'zomg', closed: true do |file|
+        segment1 = File.open file
+        segment2 = File.open file
+        segment2.getc
 
-  it 'always evaluates to the default storage, when no args are given' do
-    with_file 'f.rb', 'abc' do |file|
-      stub_const 'DATA', file
-      expect(__END__storage.load).to eq 'abc'
-    end
-  end
+        storage1 = DataSave.for segment1
+        storage2 = DataSave.for segment2
 
-  it 'creates a new instance every time, when a data segment is given' do
-    with_file 'f.rb', 'zomg', closed: true do |file|
-      segment1 = File.open file
-      segment2 = File.open file
-      segment2.getc
-
-      storage1 = __END__storage segment1
-      storage2 = __END__storage segment2
-
-      expect(storage1.load).to eq 'zomg'
-      expect(storage2.load).to eq 'omg'
-    end
-  end
-
-
-  describe 'the singleton default storage' do
-    it 'is initialized with the DATA constant' do
-      with_file 'f.rb', '-----' do |file|
-        file.seek 1
-        stub_const 'DATA', file
-        __END__storage.save 'a'
-        expect(File.read file).to eq "-a\n"
+        expect(storage1.load).to eq 'zomg'
+        expect(storage2.load).to eq 'omg'
       end
     end
+  end
 
-    it 'is memoized' do
-      with_file 'f.rb', '' do |file|
-        stub_const 'DATA', file
-        expect(__END__storage).to equal __END__storage
+
+  describe '.on' do
+    it 'is places the methods on the object' do
+      with_file 'f.rb', '-----' do |file|
+        file.seek 1
+        DataSave.on file
+        file.save 'a'
+        expect(File.read file).to eq "-a\n"
+        expect(file.load).to eq "a\n"
+        file.update { |loaded| expect(loaded).to eq "a\n"; "C" }
+        expect(File.read file).to eq "-C\n"
       end
     end
   end

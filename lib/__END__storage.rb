@@ -1,17 +1,13 @@
-def __END__storage(data_segment=:default)
-  if data_segment == :default
-    END_storage.default ||= __END__storage DATA
-  else
-    END_storage.from_segment(data_segment)
+class DataSave
+  def self.for(data_segment)
+    new data_segment.path, data_segment.pos
   end
-end
 
-class END_storage
-  class << self
-    attr_accessor :default
-    def from_segment(data_segment)
-      new data_segment.path, data_segment.pos
-    end
+  def self.on(data_segment)
+    store = DataSave.for data_segment
+    data_segment.define_singleton_method(:load) { store.load }
+    data_segment.define_singleton_method(:save) { |data| store.save data }
+    data_segment.define_singleton_method(:update) { |&block| store.update(&block) }
   end
 
   def initialize(path, offset)
@@ -45,3 +41,5 @@ class END_storage
     end
   end
 end
+
+DataSave.on DATA if defined? DATA
