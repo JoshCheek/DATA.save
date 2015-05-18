@@ -1,4 +1,4 @@
-require '__END__storage'
+require 'DATA.save'
 
 module SpecHelpers
   RunResult = Struct.new :status, :stdout, :stderr
@@ -123,7 +123,7 @@ end
 RSpec.describe 'DATA.save' do
   it 'loads data from the data segment' do
     result = run_file 'file.rb', <<-FILE
-      require '__END__storage'
+      require 'DATA.save'
       p DATA.load
       __END__
       the data
@@ -134,7 +134,7 @@ RSpec.describe 'DATA.save' do
 
   it 'saves data to the data segment' do
     result = run_file 'file.rb', <<-FILE
-      require '__END__storage'
+      require 'DATA.save'
       DATA.save("new data")
       __END__
       old data
@@ -145,7 +145,7 @@ RSpec.describe 'DATA.save' do
 
   it 'works with the example from the readme' do
     result = run_file 'count_runs.rb', <<-FILE, num_times: 3
-      require '__END__storage'
+      require 'DATA.save'
 
       run_count = DATA.load.to_i
       run_count += 1
@@ -165,7 +165,7 @@ RSpec.describe 'DATA.save' do
     ]
 
     expect(result.body).to eq <<-FILE.gsub(/^ */, '')
-      require '__END__storage'
+      require 'DATA.save'
 
       run_count = DATA.load.to_i
       run_count += 1
